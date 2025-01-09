@@ -1,0 +1,1 @@
+SmartRepAI is an intelligent model designed to revolutionize your workout experience. This model not only counts your reps during exercises but also identifies the specific exercise you're performing automatically. By leveraging data from gyroscope and accelerometer sensors, it provides accurate and real-time insights, ensuring a seamless fitness tracking experience.
