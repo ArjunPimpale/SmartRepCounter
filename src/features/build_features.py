@@ -3,7 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from DataTransformation import LowPassFilter
 from DataTransformation import PrincipalComponentAnalysis
-
+from FrequencyAbstraction import FourierTransformation
+from sklearn.cluster import KMeans
 
 
 df = pd.read_pickle("../../data/interim/removed_outliers_chauvenet.pkl")
@@ -85,6 +86,133 @@ gyro_r = pca_df['gyro_x']**2 + pca_df['gyro_y']**2 + pca_df['gyro_z']**2
 
 df_squares['acc_r'] = np.sqrt(acc_r)
 df_squares['gyro_r'] = np.sqrt(gyro_r)
+
+
+from TemporalAbstraction import NumericalAbstraction
+
+
+df_abs = df_squares.copy()
+
+
+features = columns + ['acc_r','gyro_r']
+
+NumAbs = NumericalAbstraction()
+
+subsets = []
+
+wd = int(1000/200)
+
+for s in df_abs['set'].unique():
+    subset = df_abs[df_abs['set'] == s].copy()
+    subset = NumAbs.abstract_numerical(subset,features,wd,"mean")
+    subset = NumAbs.abstract_numerical(subset,features,wd,"std")
+    subsets.append(subset)
+    
+df_abs = pd.concat(subsets)
+
+df_abs.info()
+
+
+
+
+df_freq = df_abs.copy().reset_index()
+
+FourAbs = FourierTransformation()
+
+ws = int(1000/200)
+fs = int(2800/200)
+df_freq = FourAbs.abstract_frequency(data_table=df_freq,cols=["acc_y"],window_size=ws,sampling_rate=fs)
+
+
+df_cluster = df_freq.copy()
+
+cluster_columns = ['acc_x','acc_y','acc_z']
+
+inertia_values = []
+cluster_range = np.arange(3,10)
+for k in cluster_range:
+    kmeans = KMeans(n_init=20,n_clusters=k,random_state = 42)
+    data = df_cluster[cluster_columns]
+    y_pred = kmeans.fit(data)
+    inertia_values.append(y_pred.inertia_)
+
+
+
+ 
+
+plt.figure(figsize=(8, 5))
+plt.plot(cluster_range, inertia_values, marker='o', linestyle='-', color='b')
+plt.title('Elbow Method for Optimal Clusters', fontsize=14)
+plt.xlabel('Number of Clusters', fontsize=12)
+plt.ylabel('Inertia', fontsize=12)
+plt.xticks(cluster_range)  # Ensure all cluster numbers are visible
+plt.grid(True, linestyle='--', alpha=0.6)
+plt.show()
+
+#from elbow method we can see that 5 is the optimal cluster number
+
+kmeans = KMeans(n_init = 20,random_state=42,n_clusters=5)
+
+y_pred = kmeans.fit_predict(data)
+y_pred.shape
+
+df_cluster['clusters'] = y_pred
+
+fig = plt.figure(figsize=(15,15))
+ax = fig.add_subplot(projection="3d")
+for c in df_cluster['clusters'].unique():
+    subset = df_cluster[df_cluster['clusters'] == c]
+    ax.scatter(subset['acc_x'],subset['acc_y'],subset['acc_z'],label = c)
+
+ax.set_xlabel("X-Axis")
+ax.set_ylabel("Y-Axis")
+ax.set_zlabel("Z-Axis")
+plt.legend()
+plt.show()
+
+
+
+#3d plot for labels
+fig = plt.figure(figsize=(15,15))
+ax = fig.add_subplot(projection = "3d")
+for l in df_cluster['label'].unique():
+    subset = df_cluster[df_cluster['label'] == l]
+    ax.scatter(subset['acc_x'],subset['acc_y'],subset['acc_z'],label = l)
+
+ax.set_xlabel("X-Axis")
+ax.set_ylabel("Y-Axis")
+ax.set_zlabel("Z-Axis")
+plt.legend()
+plt.show()
+
+
+
+
+
+df_cluster.to_pickle("../../data/interim/processed_data.pkl")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
