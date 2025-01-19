@@ -119,10 +119,27 @@ df_freq = df_abs.copy().reset_index()
 
 FourAbs = FourierTransformation()
 
-ws = int(1000/200)
-fs = int(2800/200)
-df_freq = FourAbs.abstract_frequency(data_table=df_freq,cols=["acc_y"],window_size=ws,sampling_rate=fs)
+fs = int(1000/200) #sampling rate for one data point
+ws = int(2800/200) # window size of one rep 
 
+prediction_features = list(df_freq.columns[1:7]) + ['acc_r','gyro_r']
+subsets = []
+for s in df_freq['set'].unique():
+    print("Processing set: ",s)
+    subset = df_freq[df_freq['set'] == s].reset_index(drop = True).copy()
+    subset = FourAbs.abstract_frequency(subset,prediction_features,ws,fs)
+    subsets.append(subset)
+    
+df_freq = pd.concat(subsets).set_index("epoch (ms)",drop = True)
+
+df_freq.columns
+
+#overlapping windows problem
+
+df_freq = df_freq.dropna()
+df_freq = df_freq.iloc[::2]
+
+#clustering 
 
 df_cluster = df_freq.copy()
 
@@ -185,17 +202,7 @@ ax.set_zlabel("Z-Axis")
 plt.legend()
 plt.show()
 
-
-
-
-
 df_cluster.to_pickle("../../data/interim/processed_data.pkl")
-
-
-
-
-
-
 
 
 
